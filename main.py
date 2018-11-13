@@ -3,7 +3,7 @@ from keras.models import Sequential
 from keras.layers import Dense
 from keras.utils import np_utils
 from keras.datasets import mnist
-from export_module import export_model_for_mobile, simle_save
+from export_module import export_model_for_mobile, simple_save
 import os
 import sys
 from keras.preprocessing import image
@@ -37,6 +37,14 @@ def build_model2():
     model.compile(optimizer=SGD(0.001), loss="categorical_crossentropy", metrics=["accuracy"])
     return model
 
+
+def save_to_json(model):
+    model_json = model.to_json()
+    json_file = open("mnist_model.json", "w")
+    json_file.write(model_json)
+    json_file.close()
+
+
 def fit_model():
     (x_train, y_train), (x_test, y_test) = mnist.load_data()
 
@@ -54,7 +62,7 @@ def fit_model():
     # print(model.outputs)
 
     callbacks = [
-        tf.keras.callbacks.ModelCheckpoint('./model.h5', verbose=1)
+        tf.keras.callbacks.ModelCheckpoint('./model.h5', save_best_only=True, verbose=1)
     ]
     model.fit(x_train, y_train, batch_size=200, epochs=100, validation_split=0.2, verbose=1, callbacks=callbacks)
 
@@ -70,7 +78,9 @@ def fit_model():
 
     print(model.summary())
 
-    # simle_save('./PlanetModel/1', './model.h5')
+    # save_to_json(model)
+
+    # simple_save('./PlanetModel/1', './model.h5')
     export_model_for_mobile('mnist_nn', "dense_1_input", "dense_2/Softmax")
 
 
@@ -78,18 +88,44 @@ def get_script_path():
     return os.path.dirname(os.path.realpath(sys.argv[0]))
 
 
+def evalute_model(model):
+    (x_train, y_train), (x_test, y_test) = mnist.load_data()
+
+    # оценка качества работы сети
+    x_test = x_test.reshape(10000, 784)
+    x_test = x_test.astype('float32')
+    x_test /= 255
+
+    y_test = np_utils.to_categorical(y_test, 10)
+
+    score = model.evaluate(x_test, y_test, verbose=0)
+    print("Точность работы тестовых данных: %.2f%%" % (score[1] * 100))
+
+
 def main():
     path = get_script_path()
     number_image_path = os.path.join(path, "data", "1.png")
     # print(number_image_path)
-    img = image.load_img(path=number_image_path, grayscale=True, target_size=(28, 28, 1))
+    img = image.load_img(path=number_image_path, color_mode="grayscale", target_size=(28, 28, 1))
     img = image.img_to_array(img) / 255.
     # print(img)
     test_img = img.reshape((1, 784))
     model = build_model()
     model.load_weights('./model.h5')
+    model.compile(loss="categorical_crossentropy", optimizer="SGD", metrics=["accuracy"])
 
-    img_class = model.predict_classes(test_img, verbose=1)
+    evalute_model(model)
+
+    (x_train, y_train), (x_test, y_test) = mnist.load_data()
+    x_test = x_test.reshape(10000, 784)
+    x_test = x_test.astype('float32')
+    x_test /= 255
+
+    # print(y_test)
+
+    img_class = model.predict_classes(x_test[0].reshape((1, 784)), verbose=1)
+    # img_class = model.predict(test_img, batch_size=32, verbose=1)
+    print(img_class)
     predictions = img_class[0]
     classname = img_class[0]
     print("Class: ", classname)

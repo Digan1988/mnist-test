@@ -27,7 +27,7 @@ def export_model_for_mobile(model_name, input_node_name, output_node_name):
         f.write(output_graph_def.SerializeToString())
 
 
-def simle_save(export_path, model_path):
+def simple_save(export_path, model_path):
     tf.keras.backend.set_learning_phase(0) # Ignore dropout at inference
     model = tf.keras.models.load_model(model_path)
     with tf.keras.backend.get_session() as sess:
