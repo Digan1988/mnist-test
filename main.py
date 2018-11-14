@@ -17,6 +17,7 @@ from keras.layers.convolutional import Conv2D
 from keras.layers.convolutional import MaxPooling2D
 from keras.models import load_model
 from keras.optimizers import Adam
+import cv2
 
 np.random.seed(42)
 
@@ -131,26 +132,17 @@ def array_from_image(file_path):
 
 
 def main():
-    (x_train, y_train), (x_test, y_test) = mnist.load_data()
+    model = load_model('./model.h5')
 
     path = get_script_path()
     number_image_path = os.path.join(path, "data", "1.png")
-    # print(number_image_path)
+
     img = image.load_img(path=number_image_path, color_mode="grayscale", target_size=(28, 28, 1))
     img = image.img_to_array(img) / 255.
-    # print(img)
-    # img = array_from_image(number_image_path)
     test_img = img.reshape(1, 28, 28, 1)
-    # model = build_model2(x_train)
-    # model.load_weights('./model.h5')
-    # model.compile(loss='categorical_crossentropy', optimizer=Adam(), metrics=['accuracy'])
-    model = load_model('./model.h5')
-    #evalute_model(model)
 
-    print(test_img.shape)
     img_class = model.predict_classes(test_img, verbose=1)
-    print(img_class)
-    predictions = img_class[0]
+
     classname = img_class[0]
     print("Class: ", classname)
 
@@ -160,6 +152,25 @@ def main():
     plt.show()
 
 
+def detect():
+    path = get_script_path()
+    number_image_path = os.path.join(path, "data", "color_complete.png")
+    color_complete = cv2.imread(number_image_path)
+    gray_complete = cv2.imread(number_image_path, 0)
+
+    (thresh, gray_complete) = cv2.threshold(255-gray_complete, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+
+    # gray_complete = cv2.GaussianBlur(gray_complete, (3, 3), 0)
+    cv2.imwrite(os.path.join(path, "data", "compl.png"), gray_complete)
+
+    digit_image = -np.ones(gray_complete.shape)
+
+    height, width = gray_complete.shape
+
+    predSet_ret = []
+
+
 if __name__ == '__main__':
     # fit_model()
-    main()
+    # main()
+    detect()
