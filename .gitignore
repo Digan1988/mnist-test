@@ -106,3 +106,4 @@ venv.bak/
 *.h5
 out/*
 .idea
+log_dir/*

@@ -76,7 +76,8 @@ def fit_model():
     # print(model.outputs)
 
     callbacks = [
-        tf.keras.callbacks.ModelCheckpoint('./model.h5', save_best_only=True, verbose=1)
+        tf.keras.callbacks.ModelCheckpoint('./model.h5', save_best_only=True, verbose=1),
+        tf.keras.callbacks.TensorBoard(log_dir='log_dir')
     ]
     model.fit(x_train, y_train, batch_size=200, epochs=7, validation_split=0.2, verbose=1, callbacks=callbacks)
 
@@ -135,22 +136,13 @@ def main():
 
     path = get_script_path()
     number_image_path = os.path.join(path, "data", "1.png")
-    # print(number_image_path)
     img = image.load_img(path=number_image_path, color_mode="grayscale", target_size=(28, 28, 1))
     img = image.img_to_array(img) / 255.
-    # print(img)
-    # img = array_from_image(number_image_path)
     test_img = img.reshape(1, 28, 28, 1)
-    # model = build_model2(x_train)
-    # model.load_weights('./model.h5')
-    # model.compile(loss='categorical_crossentropy', optimizer=Adam(), metrics=['accuracy'])
-    model = load_model('./model.h5')
-    #evalute_model(model)
 
-    print(test_img.shape)
+    model = load_model('./model.h5')
+
     img_class = model.predict_classes(test_img, verbose=1)
-    print(img_class)
-    predictions = img_class[0]
     classname = img_class[0]
     print("Class: ", classname)
 
