@@ -172,6 +172,8 @@ def shift(img, sx, sy):
 
 
 def detect():
+    model = load_model('./model.h5')
+
     path = get_script_path()
     number_image_path = os.path.join(path, "data", "color_complete.png")
     color_complete = cv2.imread(number_image_path)
@@ -192,16 +194,23 @@ def detect():
         for cropped_height in range(100, 300, 20):
             for shift_x in range(0, width - cropped_width, int(cropped_width/4)):
                 for shift_y in range(0, height - cropped_height, int(cropped_height/4)):
+
+                    # кусок изображения
                     gray = gray_complete[shift_y:shift_y + cropped_height, shift_x:shift_x + cropped_width]
+                    # если в куске почти ничего нет, то следующий шаг
                     if np.count_nonzero(gray) <= 20:
                         continue
 
+                    # если только кусок числа, то следующий шаг
                     if (np.sum(gray[0]) != 0) or (np.sum(gray[:, 0]) != 0) or (np.sum(gray[-1]) != 0) or (np.sum(gray[:, -1]) != 0):
                         continue
 
+                    # верхнее левое положение прямоугольника
                     top_left = np.array([shift_y, shift_x])
+                    # нижнее правое положение прямоугольника
                     bottom_right = np.array([shift_y + cropped_height, shift_x + cropped_width])
 
+                    # сужение рамок так, чтобы попало только число
                     while np.sum(gray[0]) == 0:
                         top_left[0] += 1
                         gray = gray[1:]
@@ -219,9 +228,11 @@ def detect():
                         gray = np.delete(gray, -1, 1)
 
                     actual_w_h = bottom_right - top_left
+                    # есть ли число внутри прямоугольника
                     if np.count_nonzero(digit_image[top_left[0]:bottom_right[0], top_left[1]:bottom_right[1]] + 1) > 0.2 * actual_w_h[0] * actual_w_h[1]:
                         continue
 
+                    # предварительная обработка одного числа с сохранением соотношения сторон
                     rows, cols = gray.shape
                     compl_dif = abs(rows - cols)
                     half_Sm = int(compl_dif / 2)
@@ -231,17 +242,34 @@ def detect():
                     else:
                         gray = np.lib.pad(gray, ((half_Sm, half_Big), (0, 0)), 'constant')
 
+                    # размер куска изображения меняется на 20x20
                     gray = cv2.resize(gray, (20, 20))
+                    # добавляются черные линии, чтобы размер получился 28x28
                     gray = np.lib.pad(gray, ((4, 4), (4, 4)), 'constant')
 
+                    # сдвиг изображения с использованием центра масс
                     shiftx, shifty = getBestShift(gray)
                     shifted = shift(gray, shiftx, shifty)
                     gray = shifted
 
+                    flatten = gray.flatten() / 255.0
+
+                    test_img = flatten.reshape(1, 28, 28, 1)
+
+                    img_class = model.predict_classes(test_img, verbose=1)
+
+                    classname = img_class[0]
+                    # print("Class: ", classname)
+
                     # cv2.imwrite(os.path.join(path, "data", "color_complete" + "_" + str(shift_x) + "_" + str(shift_y) + ".png"), gray)
 
-                    cv2.rectangle(color_complete, tuple(top_left[::-1]), tuple(bottom_right[::-1]), color=(0, 255, 0), thickness=2)
+                    # добавление зеленой рамки на изображении
+                    cv2.rectangle(color_complete, tuple(top_left[::-1]), tuple(bottom_right[::-1]), color=(0, 255, 0), thickness=5)
 
+                    font = cv2.FONT_HERSHEY_SIMPLEX
+                    cv2.putText(color_complete, str(classname), (top_left[1], bottom_right[0] + 50), font, fontScale=1.4, color=(0, 255, 0), thickness=4)
+
+    # сохранение изображения с рамками на диск
     cv2.imwrite(os.path.join(path, "data", "color_complete_digitized_image.png"), color_complete)
 
 if __name__ == '__main__':
